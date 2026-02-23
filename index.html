@@ -441,6 +441,32 @@ W:</textarea>
         return titleLine.replace(/^T:/, '').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60) || 'spartito';
     }
 
+    async function renderSvgOnCanvas(ctx, svgMarkup) {
+        const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        try {
+            const image = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Rendering SVG nativo non riuscito.'));
+                img.src = url;
+            });
+
+            ctx.drawImage(image, 0, 0);
+        } catch (nativeError) {
+            const CanvgGlobal = window.Canvg || window.canvg?.Canvg;
+            if (!CanvgGlobal) {
+                throw new Error('Libreria canvg non caricata e rendering SVG nativo fallito.');
+            }
+
+            const renderer = CanvgGlobal.fromString(ctx, svgMarkup);
+            await renderer.render();
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    }
+
     async function exportScoreToPdf() {
         try {
             updateStatus('loading', '⏳ Export PDF in corso...');
@@ -459,13 +485,7 @@ W:</textarea>
             canvas.width = width;
             canvas.height = height;
 
-            const CanvgGlobal = window.Canvg || window.canvg?.Canvg;
-            if (!CanvgGlobal) {
-                throw new Error('Libreria canvg non caricata');
-            }
-
-            const renderer = CanvgGlobal.fromString(ctx, svgMarkup);
-            await renderer.render();
+            await renderSvgOnCanvas(ctx, svgMarkup);
 
             const imageData = canvas.toDataURL('image/png', 1);
             const { jsPDF } = window.jspdf;
