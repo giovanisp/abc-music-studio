@@ -1,47 +1,170 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ABC Music Studio</title>
+    <title>Universal Music Studio Basic</title>
+    
+    <!-- FOGLIO DI STILE UFFICIALE -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.2.2/abcjs-audio.css">
+    
+    <!-- LIBRERIA JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.2.2/abcjs-basic-min.js"></script>
+    
     <style>
-        .audio-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 20px;
+        .abcjs-css-warning { display: none !important; }
+
+        body { font-family: system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 15px; color: #0f172a; }
+        .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .toolbar { display: flex; gap: 10px; align-items: center; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-wrap: wrap; }
+        select { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: bold; background: #f8fafc; cursor: pointer; font-size: 14px;}
+        
+        textarea { 
+            width: 100%; height: 200px; padding: 15px; border: 1px solid #cbd5e1; border-radius: 8px;
+            font-family: monospace; font-size: 15px; background: #fff; box-sizing: border-box; resize: vertical;
         }
-        .audio-controls button {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            margin: 0 10px;
-        }
-        .audio-controls button:hover {
-            opacity: 0.7;
-        }
-        .icon {
-            width: 30px;
-            height: 30px;
-        }
+
+        .panel-audio { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 80px;}
+        #notation { background: white; padding: 15px; border-radius: 8px; overflow-x: auto; min-height: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        #status-msg { font-size: 13px; color: #64748b; font-weight: bold; display: block; margin-top: 10px; }
+        .error { color: #ef4444 !important; }
+        .success { color: #10b981 !important; }
+        .loading { color: #f59e0b !important; }
     </style>
 </head>
 <body>
-    <h1>Welcome to ABC Music Studio</h1>
-    <div class="audio-controls">
-        <button onclick="document.getElementById('audioElement').play()">
-            <img src="play-icon.png" class="icon" alt="Play">
-        </button>
-        <button onclick="document.getElementById('audioElement').pause()">
-            <img src="pause-icon.png" class="icon" alt="Pause">
-        </button>
-        <button onclick="document.getElementById('audioElement').currentTime -= 10">
-            <img src="rewind-icon.png" class="icon" alt="Rewind">
-        </button>
-        <button onclick="document.getElementById('audioElement').currentTime += 10">
-            <img src="fast-forward-icon.png" class="icon" alt="Fast Forward">
-        </button>
+
+<div class="container">
+    <h2 style="margin: 0;">Web Music Studio</h2>
+    
+    <div class="toolbar">
+        <label>Strumento:</label>
+        <select id="instrument-select">
+            <option value="0">🎹 Pianoforte Acustico</option>
+            <option value="25">🎸 Chitarra Acustica</option>
+            <option value="48">🎻 Archi (Ensemble)</option>
+            <option value="73">🎷 Flauto</option>
+            <option value="81">🎹 Sintetizzatore</option>
+        </select>
+        <span style="font-size: 12px; color: #64748b; margin-left: auto;">(Modifica il testo o cambia strumento per aggiornare)</span>
     </div>
-    <audio id="audioElement" src="your-audio-file.mp3" controls></audio>
+
+    <textarea id="abc-input">
+X:1
+T:Let It Be (Copia/Incolla Esempio)
+M:4/4
+L:1/4
+Q:1/4=100
+K:C
+% Accordi sopra, melodia sotto, testo con w:
+"C" C2 "G" D E | "Am" C2 "F" A,2 | "C" G, C "G" E D | "F" C4 |
+w: When I find my-self in times of trou-ble
+"C" C2 "G" D E | "Am" C2 "F" A,2 | "C" G, C "G" E D | "F" C4 |
+w: Mo-ther Ma-ry comes to me _ _ _</textarea>
+
+
+    <div class="panel-audio">
+        <!-- Il div del player verrà distrutto e ricreato da zero via JS -->
+        <div id="audio-player-container"></div>
+        <span id="status-msg">Inizializzazione...</span>
+    </div>
+
+    <div id="notation"></div>
+</div>
+
+<script>
+    let visualObj;
+    let synthControl;
+    let timer;
+
+    // Colleghiamo gli eventi in modo forzato e sicuro tramite JS
+    document.getElementById('abc-input').addEventListener('input', triggerUpdate);
+    document.getElementById('instrument-select').addEventListener('change', triggerUpdate);
+
+    function triggerUpdate() {
+        const statusEl = document.getElementById('status-msg');
+        statusEl.innerText = "⏳ Ricalcolo audio in corso...";
+        statusEl.className = "loading";
+
+        // Mettiamo in pausa l'eventuale audio in riproduzione
+        if (synthControl) {
+            synthControl.pause();
+        }
+
+        // Aspetta mezzo secondo per evitare di ricaricare i suoni 100 volte se scrivi velocemente
+        clearTimeout(timer);
+        timer = setTimeout(processMusic, 500);
+    }
+
+    async function processMusic() {
+        const statusEl = document.getElementById('status-msg');
+        let rawCode = document.getElementById('abc-input').value.trim();
+
+        try {
+            // Auto-fix per chi incolla senza intestazioni
+            if (!rawCode.includes('X:')) rawCode = "X:1\n" + rawCode;
+            if (!rawCode.includes('K:')) rawCode = "K:C\nM:4/4\nL:1/4\n" + rawCode;
+
+            // 1. RENDER GRAFICO (Immediato)
+            visualObj = ABCJS.renderAbc("notation", rawCode, {
+                responsive: "resize",
+                add_classes: true,
+                format: { gchordfont: "Arial 13 bold" }
+            })[0];
+
+            if (ABCJS.synth.supportsAudio()) {
+                const instrId = parseInt(document.getElementById('instrument-select').value);
+
+                // IL TRUCCO INFALLIBILE: Svuotiamo fisicamente il contenitore HTML dell'audio
+                const container = document.getElementById('audio-player-container');
+                container.innerHTML = '<div id="audio-player"></div>';
+
+                // Ricreiamo il controller grafico da zero
+                synthControl = new ABCJS.synth.SynthController();
+                synthControl.load("#audio-player", null, {
+                    displayRestart: true, displayPlay: true, 
+                    displayProgress: true, displayWarp: true, displayLoop: true
+                });
+
+                // Parametri forzati
+                const audioParams = {
+                    program: instrId,       // Strumento melodia
+                    chordProgram: instrId,  // Strumento accordi
+                    chordsOff: false,
+                    soundFontUrl: "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/"
+                };
+
+                // Inizializziamo il buffer sonoro
+                const createSynth = new ABCJS.synth.CreateSynth();
+                await createSynth.init({
+                    visualObj: visualObj,
+                    options: audioParams
+                });
+
+                // Passiamo obbligatoriamente i nuovi parametri al controller appena rigenerato
+                await synthControl.setTune(visualObj, false, audioParams);
+                
+                statusEl.innerText = "● Pronto! Premi Play.";
+                statusEl.className = "success";
+            }
+        } catch (error) {
+            console.error("Errore di elaborazione:", error);
+            statusEl.innerText = "Errore: controlla la sintassi del brano.";
+            statusEl.className = "error";
+        }
+    }
+
+    // Avvio iniziale automatico
+    window.onload = triggerUpdate;
+
+    // Sblocca il sistema audio del browser al primo click sulla pagina
+    document.addEventListener('click', () => {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+</script>
+
 </body>
 </html>
