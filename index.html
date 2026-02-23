@@ -6,9 +6,9 @@
     <title>Music Studio Basic</title>
 
     <!-- LIBRERIE JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.2.2/abcjs-basic-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvg/4.0.1/umd.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.2.2/abcjs-basic-min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/canvg/4.0.1/umd.min.js"></script>
 
     <style>
         :root {
@@ -428,7 +428,12 @@ W:</textarea>
             canvas.width = width;
             canvas.height = height;
 
-            const renderer = canvg.Canvg.fromString(ctx, svgMarkup);
+            const CanvgGlobal = window.Canvg || window.canvg?.Canvg;
+            if (!CanvgGlobal) {
+                throw new Error('Libreria canvg non caricata');
+            }
+
+            const renderer = CanvgGlobal.fromString(ctx, svgMarkup);
             await renderer.render();
 
             const imageData = canvas.toDataURL('image/png', 1);
