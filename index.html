@@ -250,11 +250,10 @@
         </div>
 
         <div class="toolbar-actions">
-            <button id="render-btn" class="btn-primary" type="button">Aggiorna spartito</button>
             <button id="pdf-btn" type="button" disabled>Export PDF</button>
         </div>
 
-        <p class="helper-note">Suggerimento: modifica il testo ABC o cambia strumento, poi aggiorna. Funziona senza backend.</p>
+        <p class="helper-note">Suggerimento: lo spartito si aggiorna automaticamente mentre scrivi o cambi strumento. Funziona senza backend.</p>
     </div>
 
     <label class="field" for="abc-input">
@@ -318,12 +317,10 @@ W:</textarea>
     const statusEl = document.getElementById('status-msg');
     const abcInput = document.getElementById('abc-input');
     const instrumentSelect = document.getElementById('instrument-select');
-    const renderBtn = document.getElementById('render-btn');
     const pdfBtn = document.getElementById('pdf-btn');
 
     abcInput.addEventListener('input', triggerDebouncedUpdate);
     instrumentSelect.addEventListener('change', triggerDebouncedUpdate);
-    renderBtn.addEventListener('click', processMusic);
     pdfBtn.addEventListener('click', exportScoreToPdf);
 
     function updateStatus(type, message) {
