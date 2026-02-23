@@ -4,11 +4,11 @@
 The Web Music Studio is a versatile web application designed for musicians and composers. It provides a platform for creating, editing, and sharing music in real-time using various tools and features.
 
 ## Features
-- **User-friendly Interface**: A clean and intuitive design that makes it easy for users to navigate the application.
-- **Copy/Paste ABC notation from popular sites**: Format BC notation from The Session, ABC Notation, FolkTuneFinder and other sites easily.
-- **Music Play**: Offers a variety of musical instruments to play.
-- **UPCOMING -- Export Options**: Save your projects in multiple formats, such as MIDI, MP3, or WAV.
-- **UPCOMING -- Project Sharing**: Easily share your musical projects with others via a simple link.
+- **Responsive UI (desktop + mobile)**: Toolbar, editor, and playback controls optimized for smaller screens and touch targets.
+- **Copy/Paste ABC notation from popular sites**: Format ABC notation from The Session, ABC Notation, FolkTuneFinder and other sources quickly.
+- **Music Play**: Pick an instrument and listen immediately with inline ABCJS audio controls.
+- **Client-side PDF Export**: Export rendered sheet music to PDF directly in the browser (no server-side code).
+- **Single-Page App**: Pure HTML5/JS app deployable on static hosting (e.g., GitHub Pages).
 
 ## Getting Started
 1. **Accessing the Application**: Go to https://giovanisp.github.io/abc-music-studio/ 
