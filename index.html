@@ -196,6 +196,20 @@
             padding: 8px;
             background: var(--surface);
         }
+        #audio-player .abcjs-tempo-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 2px;
+        }
+        #audio-player .tempo-stepper {
+            min-width: 32px;
+            min-height: 32px;
+            font-size: 20px;
+            line-height: 1;
+            font-weight: 700;
+            padding: 0;
+        }
         #audio-player .abcjs-btn {
             min-width: 40px;
             min-height: 40px;
@@ -216,17 +230,25 @@
             outline: 3px solid rgba(37, 99, 235, 0.35);
             outline-offset: 1px;
         }
-        #audio-player .abcjs-midi-progress-background {
-            flex: 1 1 180px;
-            height: 12px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: #e2e8f0;
-            overflow: hidden;
-        }
-        #audio-player .abcjs-midi-progress-indicator {
-            background: var(--primary);
+        #audio-player .abcjs-midi-current-time,
+        #audio-player .abcjs-midi-clock,
+        #audio-player .abcjs-midi-clock-value {
+            font-size: 28px;
+            font-weight: 800;
             min-width: 2px;
+        }
+        #audio-player .abcjs-midi-current-time {
+            line-height: 1;
+            margin-inline: 4px 2px;
+        }
+        #audio-player .abcjs-midi-tempo,
+        #audio-player .abcjs-midi-tempo input,
+        #audio-player .abcjs-midi-tempo input[type="number"] {
+            font-size: 22px;
+        }
+        #audio-player .abcjs-midi-progress-background,
+        #audio-player .abcjs-midi-progress-indicator {
+            display: none !important;
         }
 
         @media (max-width: 768px) {
@@ -250,10 +272,6 @@
                 min-width: 44px;
                 min-height: 44px;
                 padding: 8px;
-            }
-            #audio-player .abcjs-midi-progress-background {
-                flex-basis: 100%;
-                order: 99;
             }
             textarea {
                 min-height: 150px;
@@ -398,11 +416,11 @@ W:</textarea>
 
         state.synthControl = new ABCJS.synth.SynthController();
         state.synthControl.load('#audio-player', null, {
-            displayRestart: true,
+            displayRestart: false,
             displayPlay: true,
-            displayProgress: true,
+            displayProgress: false,
             displayWarp: true,
-            displayLoop: true
+            displayLoop: false
         });
 
         const audioParams = {
@@ -415,6 +433,46 @@ W:</textarea>
         const createSynth = new ABCJS.synth.CreateSynth();
         await createSynth.init({ visualObj, options: audioParams });
         await state.synthControl.setTune(visualObj, false, audioParams);
+        enhanceTempoControls();
+    }
+
+    function enhanceTempoControls() {
+        const audioPlayer = document.getElementById('audio-player');
+        if (!audioPlayer || audioPlayer.querySelector('.tempo-stepper')) return;
+
+        const tempoInput = audioPlayer.querySelector('.abcjs-midi-tempo input[type="number"], .abcjs-midi-tempo input');
+        if (!tempoInput) return;
+
+        const section = document.createElement('div');
+        section.className = 'abcjs-tempo-section';
+
+        const decreaseBtn = document.createElement('button');
+        decreaseBtn.type = 'button';
+        decreaseBtn.className = 'abcjs-btn tempo-stepper';
+        decreaseBtn.setAttribute('aria-label', 'Riduci BPM');
+        decreaseBtn.textContent = '−';
+
+        const increaseBtn = document.createElement('button');
+        increaseBtn.type = 'button';
+        increaseBtn.className = 'abcjs-btn tempo-stepper';
+        increaseBtn.setAttribute('aria-label', 'Aumenta BPM');
+        increaseBtn.textContent = '+';
+
+        const stepTempo = (delta) => {
+            const baseValue = parseInt(tempoInput.value, 10) || 0;
+            const min = parseInt(tempoInput.min, 10) || 0;
+            const max = parseInt(tempoInput.max, 10) || 300;
+            const nextValue = Math.min(max, Math.max(min, baseValue + delta));
+            tempoInput.value = String(nextValue);
+            tempoInput.dispatchEvent(new Event('change', { bubbles: true }));
+            tempoInput.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
+        decreaseBtn.addEventListener('click', () => stepTempo(-5));
+        increaseBtn.addEventListener('click', () => stepTempo(5));
+
+        tempoInput.parentElement?.insertBefore(section, tempoInput);
+        section.append(decreaseBtn, tempoInput, increaseBtn);
     }
 
     async function processMusic() {
