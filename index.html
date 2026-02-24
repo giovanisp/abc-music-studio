@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Studio Basic</title>
+    <title>ABC Web Music Studio Basic</title>
 
     <!-- LIBRERIE JS -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/abcjs/6.2.2/abcjs-basic-min.js"></script>
@@ -211,7 +211,7 @@
             padding: 0;
         }
         #audio-player .abcjs-btn {
-            min-width: 40px;
+            min-width: 80px;
             min-height: 40px;
             display: inline-flex;
             align-items: center;
@@ -223,6 +223,9 @@
             padding: 6px 10px;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        #audio-player abcjs-tempo-wrapper span {
+    font-size: 20px;
+}
         #audio-player .abcjs-btn:hover {
             border-color: #94a3b8;
         }
@@ -284,7 +287,7 @@
 <body>
 
 <div class="container">
-    <h1 class="page-title">Web Music Studio</h1>
+    <h1 class="page-title">ABC Web Music Studio Basic</h1>
 
     <div class="toolbar">
         <div class="field">
